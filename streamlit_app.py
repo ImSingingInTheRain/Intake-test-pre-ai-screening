@@ -170,6 +170,12 @@ def evaluate(answers: dict[str, str]) -> tuple[str, str]:
             "Q3 is Yes (research-only scientific use/development).",
         )
 
+    if q4 == "Yes":
+        return (
+            "Outcome B: AI Ethics Assessment required",
+            "Q4 is Yes, so this is routed to Outcome B.",
+        )
+
     # Path 2 — clearly low-impact non-generative AI
     if q5 == "No" and q4 == "No" and (q1 == "No" or q2 == "Yes"):
         return (
@@ -198,10 +204,11 @@ def evaluate(answers: dict[str, str]) -> tuple[str, str]:
         )
 
     # Path 3 — approved low-risk generative AI
-    if q6 == "Yes" and q7 == "No" and q8 == "No" and q9 == "No":
+    q7_is_low_risk = q7 in (None, "No")
+    if q6 == "Yes" and q7_is_low_risk and q8 == "No" and q9 == "No":
         return (
             "Outcome A: Limited Risk — no AI Ethics Assessment needed",
-            "Approved low-risk generative path met: Q6=Yes, Q7=No, Q8=No, Q9=No.",
+            "Approved low-risk generative path met: Q6=Yes, Q7 not Yes, Q8=No, Q9=No.",
         )
 
     return (
@@ -290,7 +297,7 @@ else:
         q2 = render_assessment_question(
             "q2",
             2,
-            "If yes, is processing limited to simple identifiers used only for technical/administrative purposes?",
+            "Is processing of personal data limited to simple identifiers used only for technical/administrative purposes?",
             q2_help,
         )
 
@@ -335,29 +342,32 @@ else:
             visible_questions.add("q6")
             required_questions.add("q6")
             q6_help = (
-                "Examples may include internally approved enterprise chatbot/copilot platforms that were pre-assessed."
+                "Examples includes internally approved enterprise chatbot/copilot platforms that were pre-assessed like ChatGPT Enterprise and Copilot Studio"
             )
             q6 = render_assessment_question(
                 "q6",
                 6,
-                "If yes, is it created using an approved platform that already underwent an AI Ethics Assessment?",
+                "Is the Genertive AI system created using an approved platform that already underwent an AI Ethics Assessment?",
                 q6_help,
             )
 
             if q6 == "Yes":
-                visible_questions.update({"q7", "q8", "q9"})
-                required_questions.update({"q7", "q8", "q9"})
+                visible_questions.update({"q8", "q9"})
+                required_questions.update({"q8", "q9"})
 
                 q7_help = (
                     "Examples: racial/ethnic origin, political opinions, religious beliefs, union membership, genetic data, "
                     "biometric data, health data, sex life, sexual orientation."
                 )
-                q7 = render_assessment_question(
-                    "q7",
-                    7,
-                    "For generative AI, is it intended to process special categories of personal data?",
-                    q7_help,
-                )
+                if not (q1 == "No" or q2 == "Yes"):
+                    visible_questions.add("q7")
+                    required_questions.add("q7")
+                    q7 = render_assessment_question(
+                        "q7",
+                        7,
+                        "Is the Generative AI ystem intended to process special categories of personal data?",
+                        q7_help,
+                    )
 
                 q8_help = (
                     "Examples: hiring prioritization, filtering applications, candidate evaluation, promotion/termination "
@@ -366,7 +376,7 @@ else:
                 q8 = render_assessment_question(
                     "q8",
                     8,
-                    "Is it intended for employee management or recruitment activities?",
+                    "is it intended to process special categories of personal data?",
                     q8_help,
                 )
 
@@ -377,7 +387,7 @@ else:
                 q9 = render_assessment_question(
                     "q9",
                     9,
-                    "Can the outputs reasonably cause physical, psychological, or financial harm?",
+                    "Can the outputs cause physical, psychological, or financial harm?",
                     q9_help,
                 )
 
