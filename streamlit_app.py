@@ -1,3 +1,5 @@
+import html
+
 import streamlit as st
 
 st.set_page_config(page_title="AI Ethics Assessment Pre-Screening", page_icon="🧭", layout="wide")
@@ -67,11 +69,12 @@ st.markdown(
         width: 100%;
     }
     .info-btn-wrap {
-        display: flex;
+        display: inline-flex;
+        position: relative;
         justify-content: flex-end;
         align-items: center;
     }
-    div[data-testid="stPopover"] button {
+    .info-popover-btn {
         min-height: 2rem;
         height: 2rem;
         min-width: 2rem;
@@ -82,9 +85,30 @@ st.markdown(
         padding: 0;
         font-size: 1rem;
         line-height: 1;
+        cursor: help;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
-    div[data-testid="stPopover"] button svg {
+    .info-popover-content {
         display: none;
+        position: absolute;
+        right: 0;
+        top: calc(100% + 0.35rem);
+        z-index: 999;
+        width: 16rem;
+        background: #ffffff;
+        color: #1f2937;
+        border: 1px solid #98a2b3;
+        border-radius: 8px;
+        padding: 0.65rem 0.75rem;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+        font-size: 0.82rem;
+        text-align: left;
+    }
+    .info-btn-wrap:hover .info-popover-content,
+    .info-btn-wrap:focus-within .info-popover-content {
+        display: block;
     }
     .stSelectbox > div > div {
         background: #c6ccd8;
@@ -200,10 +224,16 @@ def render_assessment_question(question_key: str, question_number: int, title: s
         with title_col:
             st.markdown(f"<div class='qtitle-wrap'><p class='sn-qtitle'>Q{question_number}. {title}</p></div>", unsafe_allow_html=True)
         with info_col:
-            st.markdown("<div class='info-btn-wrap'>", unsafe_allow_html=True)
-            with st.popover("💡", help=f"More information about question {question_number}"):
-                st.write(tooltip)
-            st.markdown("</div>", unsafe_allow_html=True)
+            escaped_tooltip = html.escape(tooltip)
+            st.markdown(
+                f"""
+                <div class='info-btn-wrap'>
+                    <span class='info-popover-btn' role='button' tabindex='0' aria-label='More information about question {question_number}'>💡</span>
+                    <div class='info-popover-content'>{escaped_tooltip}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
     with answer_col:
         selected = st.selectbox(
             f"Q{question_number}",
