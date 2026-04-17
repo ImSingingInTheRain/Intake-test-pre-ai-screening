@@ -113,45 +113,39 @@ st.markdown(
     .stSelectbox > div > div {
         background: #c6ccd8;
     }
-    .outcome-box {
+    .result-box {
         background: #ffffff;
         border-radius: 12px;
         border: 1px solid #dbe4ee;
         padding: 1.15rem;
+        margin-top: 1rem;
         box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
     }
-    .outcome-a {
+    .result-pending {
+        background: #eef2f7;
+        border-left: 6px solid #98a2b3;
+    }
+    .result-a {
         border-left: 6px solid #0f9d58;
+        background: #edf9f2;
     }
-    .outcome-b {
-        border-left: 6px solid #c62828;
-    }
-    .subtle {
-        color: #526071;
-        font-size: 0.93rem;
+    .result-b {
+        border-left: 6px solid #f57c00;
+        background: #fff6eb;
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-if "completed" not in st.session_state:
-    st.session_state.completed = False
-if "result" not in st.session_state:
-    st.session_state.result = None
-
-
 OPTIONS = ["Yes", "No", "Unsure"]
 QUESTION_KEYS = [f"q{i}" for i in range(1, 10)]
 
 
-def evaluate(answers: dict[str, str]) -> tuple[str, str]:
+def evaluate(answers: dict[str, str]) -> str:
     # Fallback rule
     if any(answer == "Unsure" for answer in answers.values()):
-        return (
-            "Outcome B: AI Ethics Assessment required",
-            "At least one answer was marked as Unsure, so the fallback rule routes this to Outcome B.",
-        )
+        return "outcome_b"
 
     q1 = answers.get("q1")
     q2 = answers.get("q2")
@@ -165,56 +159,48 @@ def evaluate(answers: dict[str, str]) -> tuple[str, str]:
 
     # Path 1 — research-only
     if q3 == "Yes":
-        return (
-            "Outcome A: Limited Risk — no AI Ethics Assessment needed",
-            "Q3 is Yes (research-only scientific use/development).",
-        )
+        return "outcome_a"
 
     if q4 == "Yes":
-        return (
-            "Outcome B: AI Ethics Assessment required",
-            "Q4 is Yes, so this is routed to Outcome B.",
-        )
+        return "outcome_b"
 
     # Path 2 — clearly low-impact non-generative AI
     if q5 == "No" and q4 == "No" and (q1 == "No" or q2 == "Yes"):
-        return (
-            "Outcome A: Limited Risk — no AI Ethics Assessment needed",
-            "Low-impact non-generative path met: Q5=No, Q4=No, and (Q1=No or Q2=Yes).",
-        )
+        return "outcome_a"
 
     # If non-generative but path 2 not met, route to B
     if q5 == "No":
-        return (
-            "Outcome B: AI Ethics Assessment required",
-            "Non-generative path did not satisfy all Limited Risk conditions.",
-        )
+        return "outcome_b"
 
     # Generative AI branch
     if q6 == "No":
-        return (
-            "Outcome B: AI Ethics Assessment required",
-            "Generative AI solution is not on an approved pre-assessed platform (Q6=No).",
-        )
+        return "outcome_b"
 
     if q7 == "Yes" or q8 == "Yes" or q9 == "Yes":
-        return (
-            "Outcome B: AI Ethics Assessment required",
-            "Generative AI involves special-category data, employee/recruitment usage, or potential harm.",
-        )
+        return "outcome_b"
 
     # Path 3 — approved low-risk generative AI
     q7_is_low_risk = q7 in (None, "No")
     if q6 == "Yes" and q7_is_low_risk and q8 == "No" and q9 == "No":
+        return "outcome_a"
+
+    return "outcome_b"
+
+
+def get_result_content(required_questions: set[str]) -> tuple[str, str]:
+    answers = {question_key: st.session_state.get(question_key) for question_key in required_questions}
+
+    if any(value in (None, "--Please select--") for value in answers.values()):
+        return "result-pending", "Result: answer all shown questions"
+
+    outcome = evaluate(answers)
+    if outcome == "outcome_a":
         return (
-            "Outcome A: Limited Risk — no AI Ethics Assessment needed",
-            "Approved low-risk generative path met: Q6=Yes, Q7 not Yes, Q8=No, Q9=No.",
+            "result-a",
+            "Result: no Ai Ethics assessment required. The solution is assigned a Limited AI Ethics Risk Classification",
         )
 
-    return (
-        "Outcome B: AI Ethics Assessment required",
-        "Default routing rule applied for any combination outside limited-risk paths.",
-    )
+    return "result-b", "Result: an ai ethics assessment is required"
 
 
 def clear_hidden_answers(visible_questions: set[str]) -> None:
@@ -252,155 +238,134 @@ def render_assessment_question(question_key: str, question_number: int, title: s
     return None if selected == "--Please select--" else selected
 
 
-if st.session_state.completed:
-    outcome_text, reason = st.session_state.result
-    outcome_class = "outcome-a" if outcome_text.startswith("Outcome A") else "outcome-b"
-    st.markdown(f"<div class='outcome-box {outcome_class}'>", unsafe_allow_html=True)
-    st.markdown(f"### {outcome_text}")
-    st.markdown(f"<p class='subtle'>{reason}</p>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+st.markdown(
+    """
+    <div class='sn-tabs'>
+        <div class='sn-tab active'>AI Ethics Assessment Pre-screening</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+st.markdown("<div class='sn-surface'>", unsafe_allow_html=True)
 
-    if st.button("Restart assessment", type="primary"):
-        st.session_state.completed = False
-        st.session_state.result = None
-        for question_key in QUESTION_KEYS:
-            st.session_state.pop(question_key, None)
-        st.rerun()
-else:
-    st.markdown(
-        """
-        <div class='sn-tabs'>
-            <div class='sn-tab active'>AI Ethics Assessment Pre-screening</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+visible_questions: set[str] = {"q1", "q3"}
+required_questions: set[str] = {"q1", "q3"}
+
+q1_help = (
+    "Personal data includes identifiable info such as name, email, employee ID, IP address, "
+    "user-linked chat transcripts, metadata, prompts, and feedback tied to an individual."
+)
+q1 = render_assessment_question("q1", 1, "Is the solution intended to process personal data?", q1_help)
+
+q2 = None
+if q1 == "Yes":
+    visible_questions.add("q2")
+    required_questions.add("q2")
+    q2_help = (
+        "Examples: authentication, access control, login records, telemetry, usage analytics, audit logs, "
+        "technical troubleshooting, security monitoring, account provisioning."
     )
-    st.markdown("<div class='sn-surface'>", unsafe_allow_html=True)
-
-    visible_questions: set[str] = {"q1", "q3"}
-    required_questions: set[str] = {"q1", "q3"}
-
-    q1_help = (
-        "Personal data includes identifiable info such as name, email, employee ID, IP address, "
-        "user-linked chat transcripts, metadata, prompts, and feedback tied to an individual."
-    )
-    q1 = render_assessment_question("q1", 1, "Is the solution intended to process personal data?", q1_help)
-
-    q2 = None
-    if q1 == "Yes":
-        visible_questions.add("q2")
-        required_questions.add("q2")
-        q2_help = (
-            "Examples: authentication, access control, login records, telemetry, usage analytics, audit logs, "
-            "technical troubleshooting, security monitoring, account provisioning."
-        )
-        q2 = render_assessment_question(
-            "q2",
-            2,
-            "Is processing of personal data limited to simple identifiers used only for technical/administrative purposes?",
-            q2_help,
-        )
-
-    q3_help = (
-        "Examples: model training/testing/evaluation in research projects, comparing methods, "
-        "experimental results for publication, exploratory R&D or lab use."
-    )
-    q3 = render_assessment_question(
-        "q3",
-        3,
-        "Is the solution solely used and developed for scientific research and scientific development purposes?",
-        q3_help,
+    q2 = render_assessment_question(
+        "q2",
+        2,
+        "Is processing of personal data limited to simple identifiers used only for technical/administrative purposes?",
+        q2_help,
     )
 
-    q4 = q5 = q6 = q7 = q8 = q9 = None
-    if q3 != "Yes":
-        visible_questions.update({"q4", "q5"})
-        required_questions.update({"q4", "q5"})
+q3_help = (
+    "Examples: model training/testing/evaluation in research projects, comparing methods, "
+    "experimental results for publication, exploratory R&D or lab use."
+)
+q3 = render_assessment_question(
+    "q3",
+    3,
+    "Is the solution solely used and developed for scientific research and scientific development purposes?",
+    q3_help,
+)
 
-        q4_help = (
-            "Includes outputs affecting employees, applicants, patients, customers, participants, users, or population segments."
+q4 = q5 = q6 = q7 = q8 = q9 = None
+if q3 != "Yes":
+    visible_questions.update({"q4", "q5"})
+    required_questions.update({"q4", "q5"})
+
+    q4_help = (
+        "Includes outputs affecting employees, applicants, patients, customers, participants, users, or population segments."
+    )
+    q4 = render_assessment_question(
+        "q4",
+        4,
+        "Does it produce recommendations/insights/decisions/scores/rankings/profiles/classifications/predictions about people or specific groups?",
+        q4_help,
+    )
+
+    q5_help = (
+        "Includes chatbots, copilots, assistants, agents, and AI that generates/transforms text, images, audio, "
+        "video, code, summaries, or answers."
+    )
+    q5 = render_assessment_question(
+        "q5",
+        5,
+        "Is the solution using Generative AI systems, like Chatbots, agents or copilots?",
+        q5_help,
+    )
+
+    if q5 == "Yes":
+        visible_questions.add("q6")
+        required_questions.add("q6")
+        q6_help = (
+            "Examples includes internally approved enterprise chatbot/copilot platforms that were pre-assessed like ChatGPT Enterprise and Copilot Studio"
         )
-        q4 = render_assessment_question(
-            "q4",
-            4,
-            "Does it produce recommendations/insights/decisions/scores/rankings/profiles/classifications/predictions about people or specific groups?",
-            q4_help,
+        q6 = render_assessment_question(
+            "q6",
+            6,
+            "Is the Genertive AI system created using an approved platform that already underwent an AI Ethics Assessment?",
+            q6_help,
         )
 
-        q5_help = (
-            "Includes chatbots, copilots, assistants, agents, and AI that generates/transforms text, images, audio, "
-            "video, code, summaries, or answers."
-        )
-        q5 = render_assessment_question(
-            "q5",
-            5,
-            "Is the solution using Generative AI systems, like Chatbots, agents or copilots?",
-            q5_help,
-        )
+        if q6 == "Yes":
+            visible_questions.update({"q8", "q9"})
+            required_questions.update({"q8", "q9"})
 
-        if q5 == "Yes":
-            visible_questions.add("q6")
-            required_questions.add("q6")
-            q6_help = (
-                "Examples includes internally approved enterprise chatbot/copilot platforms that were pre-assessed like ChatGPT Enterprise and Copilot Studio"
+            q7_help = (
+                "Examples: racial/ethnic origin, political opinions, religious beliefs, union membership, genetic data, "
+                "biometric data, health data, sex life, sexual orientation."
             )
-            q6 = render_assessment_question(
-                "q6",
-                6,
-                "Is the Genertive AI system created using an approved platform that already underwent an AI Ethics Assessment?",
-                q6_help,
+            if not (q1 == "No" or q2 == "Yes"):
+                visible_questions.add("q7")
+                required_questions.add("q7")
+                q7 = render_assessment_question(
+                    "q7",
+                    7,
+                    "Is the Generative AI ystem intended to process special categories of personal data?",
+                    q7_help,
+                )
+
+            q8_help = (
+                "Examples: hiring prioritization, filtering applications, candidate evaluation, promotion/termination "
+                "recommendations, monitoring performance/conduct/productivity."
+            )
+            q8 = render_assessment_question(
+                "q8",
+                8,
+                "is it intended to process special categories of personal data?",
+                q8_help,
             )
 
-            if q6 == "Yes":
-                visible_questions.update({"q8", "q9"})
-                required_questions.update({"q8", "q9"})
+            q9_help = (
+                "Examples: unsafe actions, material wellbeing impact, distress/reputational harm, financial loss, "
+                "inappropriate intervention, or influencing opportunities/treatment/access."
+            )
+            q9 = render_assessment_question(
+                "q9",
+                9,
+                "Can the outputs cause physical, psychological, or financial harm?",
+                q9_help,
+            )
 
-                q7_help = (
-                    "Examples: racial/ethnic origin, political opinions, religious beliefs, union membership, genetic data, "
-                    "biometric data, health data, sex life, sexual orientation."
-                )
-                if not (q1 == "No" or q2 == "Yes"):
-                    visible_questions.add("q7")
-                    required_questions.add("q7")
-                    q7 = render_assessment_question(
-                        "q7",
-                        7,
-                        "Is the Generative AI ystem intended to process special categories of personal data?",
-                        q7_help,
-                    )
-
-                q8_help = (
-                    "Examples: hiring prioritization, filtering applications, candidate evaluation, promotion/termination "
-                    "recommendations, monitoring performance/conduct/productivity."
-                )
-                q8 = render_assessment_question(
-                    "q8",
-                    8,
-                    "is it intended to process special categories of personal data?",
-                    q8_help,
-                )
-
-                q9_help = (
-                    "Examples: unsafe actions, material wellbeing impact, distress/reputational harm, financial loss, "
-                    "inappropriate intervention, or influencing opportunities/treatment/access."
-                )
-                q9 = render_assessment_question(
-                    "q9",
-                    9,
-                    "Can the outputs cause physical, psychological, or financial harm?",
-                    q9_help,
-                )
-
-    clear_hidden_answers(visible_questions)
-    submitted = st.button("Evaluate", type="primary", use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if submitted:
-        answers = {question_key: st.session_state.get(question_key) for question_key in required_questions}
-
-        if any(value is None for value in answers.values()):
-            st.error("Please answer every visible question using Yes, No, or Unsure.")
-        else:
-            st.session_state.result = evaluate(answers)
-            st.session_state.completed = True
-            st.rerun()
+clear_hidden_answers(visible_questions)
+result_class, result_text = get_result_content(required_questions)
+st.markdown(
+    f"<div class='result-box {result_class}'><strong>{html.escape(result_text)}</strong></div>",
+    unsafe_allow_html=True,
+)
+st.markdown("</div>", unsafe_allow_html=True)
