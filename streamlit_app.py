@@ -197,10 +197,10 @@ def get_result_content(required_questions: set[str]) -> tuple[str, str]:
     if outcome == "outcome_a":
         return (
             "result-a",
-            "Result: no Ai Ethics assessment required. The solution is assigned a Limited AI Ethics Risk Classification",
+            "Result: No AI Ethics assessment required. The solution is assigned a Limited AI Ethics Risk Classification",
         )
 
-    return "result-b", "Result: an ai ethics assessment is required"
+    return "result-b", "Result: An AI Ethics assessment is required"
 
 
 def clear_hidden_answers(visible_questions: set[str]) -> None:
