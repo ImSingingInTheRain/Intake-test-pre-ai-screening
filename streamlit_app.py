@@ -147,15 +147,15 @@ def clear_hidden_answers(visible_questions: set[str]) -> None:
 
 
 def render_question_title(question_number: int, title: str, tooltip: str) -> None:
-    tooltip_html = tooltip.replace('"', "&quot;")
-    st.markdown(
-        f"""
-        <div class='sn-card'>
-            <h3>Q{question_number}. {title} <span title="{tooltip_html}" style="cursor: help;">(?)</span></h3>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown("<div class='sn-card'>", unsafe_allow_html=True)
+    title_col, info_col = st.columns([0.94, 0.06], vertical_alignment="center")
+    with title_col:
+        st.markdown(f"### Q{question_number}. {title}")
+    with info_col:
+        with st.popover("?", use_container_width=True):
+            st.caption("More information")
+            st.write(tooltip)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 if st.session_state.completed:
