@@ -72,6 +72,7 @@ if "result" not in st.session_state:
 
 
 OPTIONS = ["Yes", "No", "Unsure"]
+QUESTION_KEYS = [f"q{i}" for i in range(1, 10)]
 
 
 def evaluate(answers: dict[str, str]) -> tuple[str, str]:
@@ -139,6 +140,12 @@ def evaluate(answers: dict[str, str]) -> tuple[str, str]:
     )
 
 
+def clear_hidden_answers(visible_questions: set[str]) -> None:
+    for question_key in QUESTION_KEYS:
+        if question_key not in visible_questions and question_key in st.session_state:
+            st.session_state[question_key] = None
+
+
 if st.session_state.completed:
     outcome_text, reason = st.session_state.result
     outcome_class = "outcome-a" if outcome_text.startswith("Outcome A") else "outcome-b"
@@ -150,6 +157,8 @@ if st.session_state.completed:
     if st.button("Restart assessment", type="primary"):
         st.session_state.completed = False
         st.session_state.result = None
+        for question_key in QUESTION_KEYS:
+            st.session_state.pop(question_key, None)
         st.rerun()
 else:
     st.markdown(
@@ -162,45 +171,65 @@ else:
         unsafe_allow_html=True,
     )
 
-    with st.form("assessment_form"):
-        st.markdown("<div class='sn-card'><h3>Q1. Personal data processing?</h3></div>", unsafe_allow_html=True)
-        q1 = st.radio(
-            "Is the solution intended to process personal data?",
-            OPTIONS,
-            index=None,
-            help=(
-                "Personal data includes identifiable info such as name, email, employee ID, IP address, "
-                "user-linked chat transcripts, metadata, prompts, and feedback tied to an individual."
-            ),
-        )
+    st.caption("Questions appear only when they are needed based on earlier answers.")
 
-        st.markdown("<div class='sn-card'><h3>Q2. Limited to simple identifiers for technical/admin use?</h3></div>", unsafe_allow_html=True)
+    visible_questions: set[str] = {"q1", "q3"}
+    required_questions: set[str] = {"q1", "q3"}
+
+    st.markdown("<div class='sn-card'><h3>Q1. Personal data processing?</h3></div>", unsafe_allow_html=True)
+    q1 = st.radio(
+        "Is the solution intended to process personal data?",
+        OPTIONS,
+        index=None,
+        key="q1",
+        help=(
+            "Personal data includes identifiable info such as name, email, employee ID, IP address, "
+            "user-linked chat transcripts, metadata, prompts, and feedback tied to an individual."
+        ),
+    )
+
+    q2 = None
+    if q1 == "Yes":
+        visible_questions.add("q2")
+        required_questions.add("q2")
+        st.markdown(
+            "<div class='sn-card'><h3>Q2. Limited to simple identifiers for technical/admin use?</h3></div>",
+            unsafe_allow_html=True,
+        )
         q2 = st.radio(
             "If yes, is processing limited to simple identifiers used only for technical/administrative purposes?",
             OPTIONS,
             index=None,
+            key="q2",
             help=(
                 "Examples: authentication, access control, login records, telemetry, usage analytics, audit logs, "
                 "technical troubleshooting, security monitoring, account provisioning."
             ),
         )
 
-        st.markdown("<div class='sn-card'><h3>Q3. Scientific research/development only?</h3></div>", unsafe_allow_html=True)
-        q3 = st.radio(
-            "Is the solution solely used and developed for scientific research and scientific development purposes?",
-            OPTIONS,
-            index=None,
-            help=(
-                "Examples: model training/testing/evaluation in research projects, comparing methods, "
-                "experimental results for publication, exploratory R&D or lab use."
-            ),
-        )
+    st.markdown("<div class='sn-card'><h3>Q3. Scientific research/development only?</h3></div>", unsafe_allow_html=True)
+    q3 = st.radio(
+        "Is the solution solely used and developed for scientific research and scientific development purposes?",
+        OPTIONS,
+        index=None,
+        key="q3",
+        help=(
+            "Examples: model training/testing/evaluation in research projects, comparing methods, "
+            "experimental results for publication, exploratory R&D or lab use."
+        ),
+    )
+
+    q4 = q5 = q6 = q7 = q8 = q9 = None
+    if q3 != "Yes":
+        visible_questions.update({"q4", "q5"})
+        required_questions.update({"q4", "q5"})
 
         st.markdown("<div class='sn-card'><h3>Q4. Outputs about people/groups?</h3></div>", unsafe_allow_html=True)
         q4 = st.radio(
             "Does it produce recommendations/insights/decisions/scores/rankings/profiles/classifications/predictions about people or specific groups?",
             OPTIONS,
             index=None,
+            key="q4",
             help=(
                 "Includes outputs affecting employees, applicants, patients, customers, participants, users, or population segments."
             ),
@@ -211,72 +240,75 @@ else:
             "Is the solution a Generative AI system?",
             OPTIONS,
             index=None,
+            key="q5",
             help=(
                 "Includes chatbots, copilots, assistants, agents, and AI that generates/transforms text, images, audio, "
                 "video, code, summaries, or answers."
             ),
         )
 
-        st.markdown("<div class='sn-card'><h3>Q6. Approved pre-assessed platform?</h3></div>", unsafe_allow_html=True)
-        q6 = st.radio(
-            "If yes, is it created using an approved platform that already underwent an AI Ethics Assessment?",
-            OPTIONS,
-            index=None,
-            help=(
-                "Examples may include internally approved enterprise chatbot/copilot platforms that were pre-assessed."
-            ),
-        )
+        if q5 == "Yes":
+            visible_questions.add("q6")
+            required_questions.add("q6")
+            st.markdown("<div class='sn-card'><h3>Q6. Approved pre-assessed platform?</h3></div>", unsafe_allow_html=True)
+            q6 = st.radio(
+                "If yes, is it created using an approved platform that already underwent an AI Ethics Assessment?",
+                OPTIONS,
+                index=None,
+                key="q6",
+                help=(
+                    "Examples may include internally approved enterprise chatbot/copilot platforms that were pre-assessed."
+                ),
+            )
 
-        st.markdown("<div class='sn-card'><h3>Q7. Special categories of personal data?</h3></div>", unsafe_allow_html=True)
-        q7 = st.radio(
-            "For generative AI, is it intended to process special categories of personal data?",
-            OPTIONS,
-            index=None,
-            help=(
-                "Examples: racial/ethnic origin, political opinions, religious beliefs, union membership, genetic data, "
-                "biometric data, health data, sex life, sexual orientation."
-            ),
-        )
+            if q6 == "Yes":
+                visible_questions.update({"q7", "q8", "q9"})
+                required_questions.update({"q7", "q8", "q9"})
 
-        st.markdown("<div class='sn-card'><h3>Q8. Employee management or recruitment use?</h3></div>", unsafe_allow_html=True)
-        q8 = st.radio(
-            "Is it intended for employee management or recruitment activities?",
-            OPTIONS,
-            index=None,
-            help=(
-                "Examples: hiring prioritization, filtering applications, candidate evaluation, promotion/termination "
-                "recommendations, monitoring performance/conduct/productivity."
-            ),
-        )
+                st.markdown("<div class='sn-card'><h3>Q7. Special categories of personal data?</h3></div>", unsafe_allow_html=True)
+                q7 = st.radio(
+                    "For generative AI, is it intended to process special categories of personal data?",
+                    OPTIONS,
+                    index=None,
+                    key="q7",
+                    help=(
+                        "Examples: racial/ethnic origin, political opinions, religious beliefs, union membership, genetic data, "
+                        "biometric data, health data, sex life, sexual orientation."
+                    ),
+                )
 
-        st.markdown("<div class='sn-card'><h3>Q9. Potential physical/psychological/financial harm?</h3></div>", unsafe_allow_html=True)
-        q9 = st.radio(
-            "Can the outputs reasonably cause physical, psychological, or financial harm?",
-            OPTIONS,
-            index=None,
-            help=(
-                "Examples: unsafe actions, material wellbeing impact, distress/reputational harm, financial loss, "
-                "inappropriate intervention, or influencing opportunities/treatment/access."
-            ),
-        )
+                st.markdown("<div class='sn-card'><h3>Q8. Employee management or recruitment use?</h3></div>", unsafe_allow_html=True)
+                q8 = st.radio(
+                    "Is it intended for employee management or recruitment activities?",
+                    OPTIONS,
+                    index=None,
+                    key="q8",
+                    help=(
+                        "Examples: hiring prioritization, filtering applications, candidate evaluation, promotion/termination "
+                        "recommendations, monitoring performance/conduct/productivity."
+                    ),
+                )
 
-        submitted = st.form_submit_button("Evaluate", type="primary", use_container_width=True)
+                st.markdown("<div class='sn-card'><h3>Q9. Potential physical/psychological/financial harm?</h3></div>", unsafe_allow_html=True)
+                q9 = st.radio(
+                    "Can the outputs reasonably cause physical, psychological, or financial harm?",
+                    OPTIONS,
+                    index=None,
+                    key="q9",
+                    help=(
+                        "Examples: unsafe actions, material wellbeing impact, distress/reputational harm, financial loss, "
+                        "inappropriate intervention, or influencing opportunities/treatment/access."
+                    ),
+                )
+
+    clear_hidden_answers(visible_questions)
+    submitted = st.button("Evaluate", type="primary", use_container_width=True)
 
     if submitted:
-        answers = {
-            "q1": q1,
-            "q2": q2,
-            "q3": q3,
-            "q4": q4,
-            "q5": q5,
-            "q6": q6,
-            "q7": q7,
-            "q8": q8,
-            "q9": q9,
-        }
+        answers = {question_key: st.session_state.get(question_key) for question_key in required_questions}
 
         if any(value is None for value in answers.values()):
-            st.error("Please answer every question using Yes, No, or Unsure.")
+            st.error("Please answer every visible question using Yes, No, or Unsure.")
         else:
             st.session_state.result = evaluate(answers)
             st.session_state.completed = True
