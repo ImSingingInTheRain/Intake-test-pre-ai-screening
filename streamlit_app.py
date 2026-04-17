@@ -1,47 +1,66 @@
 import streamlit as st
 
-st.set_page_config(page_title="AI Ethics Assessment Pre-Screening", page_icon="🧭", layout="centered")
+st.set_page_config(page_title="AI Ethics Assessment Pre-Screening", page_icon="🧭", layout="wide")
 
 # ServiceNow-inspired mock styling
 st.markdown(
     """
     <style>
     .stApp {
-        background: linear-gradient(180deg, #f4f8fb 0%, #eef3f7 100%);
+        background: #eef0f4;
         color: #1f2937;
     }
-    .sn-header {
-        background: linear-gradient(90deg, #0f172a 0%, #0b4f7d 100%);
-        color: #ffffff;
-        border-radius: 14px;
-        padding: 1.2rem 1.4rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+    .block-container {
+        padding-top: 1.2rem;
     }
-    .sn-header h1 {
-        margin: 0;
-        font-size: 1.35rem;
-        font-weight: 700;
+    .sn-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        border-bottom: 1px solid #98a2b3;
+        margin-bottom: 0;
     }
-    .sn-header p {
-        margin: 0.45rem 0 0;
+    .sn-tab {
+        padding: 0.7rem 1.2rem;
+        border: 1px solid #98a2b3;
+        border-bottom: none;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+        background: #d3d8e2;
+        color: #111827;
         font-size: 0.95rem;
-        opacity: 0.95;
     }
-    .sn-card {
-        background: #ffffff;
-        border: 1px solid #dbe4ee;
-        border-left: 5px solid #0b5cad;
-        border-radius: 12px;
-        padding: 1rem 1rem 0.5rem;
-        box-shadow: 0 2px 8px rgba(2, 28, 55, 0.06);
-        margin-bottom: 0.9rem;
+    .sn-tab.active {
+        background: #f4f6fa;
+        border-top: 4px solid #0d47a1;
+        padding-top: 0.5rem;
     }
-    .sn-card h3 {
-        margin-top: 0;
-        margin-bottom: 0.4rem;
-        font-size: 1.02rem;
-        color: #0f172a;
+    .sn-surface {
+        border: 1px solid #98a2b3;
+        border-top: none;
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+        background: #f4f6fa;
+        padding: 1.1rem 1rem 1.3rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.1);
+    }
+    .sn-row {
+        border-bottom: 1px solid #d0d5dd;
+        padding: 0.95rem 0.4rem;
+    }
+    .sn-row:last-child {
+        border-bottom: none;
+    }
+    .sn-qtitle {
+        font-size: 1.05rem;
+        margin: 0;
+        color: #111827;
+    }
+    .sn-qhint {
+        margin-left: 0.3rem;
+    }
+    .stSelectbox > div > div {
+        background: #c6ccd8;
     }
     .outcome-box {
         background: #ffffff;
@@ -143,19 +162,26 @@ def evaluate(answers: dict[str, str]) -> tuple[str, str]:
 def clear_hidden_answers(visible_questions: set[str]) -> None:
     for question_key in QUESTION_KEYS:
         if question_key not in visible_questions and question_key in st.session_state:
-            st.session_state[question_key] = None
+            st.session_state[question_key] = "--Please select--"
 
 
-def render_question_title(question_number: int, title: str, tooltip: str) -> None:
-    st.markdown("<div class='sn-card'>", unsafe_allow_html=True)
-    title_col, info_col = st.columns([0.94, 0.06], vertical_alignment="center")
-    with title_col:
-        st.markdown(f"### Q{question_number}. {title}")
-    with info_col:
+def render_assessment_question(question_key: str, question_number: int, title: str, tooltip: str) -> str | None:
+    st.markdown("<div class='sn-row'>", unsafe_allow_html=True)
+    question_col, answer_col = st.columns([0.62, 0.38], vertical_alignment="center")
+    with question_col:
+        st.markdown(f"<p class='sn-qtitle'>Q{question_number}. {title}<span class='sn-qhint'>ⓘ</span></p>", unsafe_allow_html=True)
         with st.popover("?", use_container_width=True):
             st.caption("More information")
             st.write(tooltip)
+    with answer_col:
+        selected = st.selectbox(
+            f"Q{question_number}",
+            ["--Please select--", *OPTIONS],
+            key=question_key,
+            label_visibility="collapsed",
+        )
     st.markdown("</div>", unsafe_allow_html=True)
+    return None if selected == "--Please select--" else selected
 
 
 if st.session_state.completed:
@@ -175,14 +201,23 @@ if st.session_state.completed:
 else:
     st.markdown(
         """
-        <div class='sn-header'>
-            <h1>AI Ethics Assessment Pre-Screening</h1>
+        <div class='sn-tabs'>
+            <div class='sn-tab active'>Business process impact</div>
+            <div class='sn-tab'>Business process usages</div>
+            <div class='sn-tab'>Business data impact</div>
+            <div class='sn-tab'>Technical assessment</div>
+            <div class='sn-tab'>IT Security assessment</div>
+            <div class='sn-tab'>Security Threat Scenario</div>
+            <div class='sn-tab'>Activity Journal</div>
+        </div>
+        <div class='sn-surface'>
+            <h3 style='margin-top:0; margin-bottom:0.4rem;'>AI Ethics Assessment Pre-Screening</h3>
+            <p class='subtle' style='margin-top:0;'>Questions appear only when needed based on earlier answers.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-    st.caption("Questions appear only when they are needed based on earlier answers.")
+    st.markdown("<div class='sn-surface'>", unsafe_allow_html=True)
 
     visible_questions: set[str] = {"q1", "q3"}
     required_questions: set[str] = {"q1", "q3"}
@@ -191,14 +226,7 @@ else:
         "Personal data includes identifiable info such as name, email, employee ID, IP address, "
         "user-linked chat transcripts, metadata, prompts, and feedback tied to an individual."
     )
-    render_question_title(1, "Is the solution intended to process personal data?", q1_help)
-    q1 = st.radio(
-        "Q1",
-        OPTIONS,
-        index=None,
-        key="q1",
-        label_visibility="collapsed",
-    )
+    q1 = render_assessment_question("q1", 1, "Is the solution intended to process personal data?", q1_help)
 
     q2 = None
     if q1 == "Yes":
@@ -208,34 +236,22 @@ else:
             "Examples: authentication, access control, login records, telemetry, usage analytics, audit logs, "
             "technical troubleshooting, security monitoring, account provisioning."
         )
-        render_question_title(
+        q2 = render_assessment_question(
+            "q2",
             2,
             "If yes, is processing limited to simple identifiers used only for technical/administrative purposes?",
             q2_help,
-        )
-        q2 = st.radio(
-            "Q2",
-            OPTIONS,
-            index=None,
-            key="q2",
-            label_visibility="collapsed",
         )
 
     q3_help = (
         "Examples: model training/testing/evaluation in research projects, comparing methods, "
         "experimental results for publication, exploratory R&D or lab use."
     )
-    render_question_title(
+    q3 = render_assessment_question(
+        "q3",
         3,
         "Is the solution solely used and developed for scientific research and scientific development purposes?",
         q3_help,
-    )
-    q3 = st.radio(
-        "Q3",
-        OPTIONS,
-        index=None,
-        key="q3",
-        label_visibility="collapsed",
     )
 
     q4 = q5 = q6 = q7 = q8 = q9 = None
@@ -246,34 +262,22 @@ else:
         q4_help = (
             "Includes outputs affecting employees, applicants, patients, customers, participants, users, or population segments."
         )
-        render_question_title(
+        q4 = render_assessment_question(
+            "q4",
             4,
             "Does it produce recommendations/insights/decisions/scores/rankings/profiles/classifications/predictions about people or specific groups?",
             q4_help,
-        )
-        q4 = st.radio(
-            "Q4",
-            OPTIONS,
-            index=None,
-            key="q4",
-            label_visibility="collapsed",
         )
 
         q5_help = (
             "Includes chatbots, copilots, assistants, agents, and AI that generates/transforms text, images, audio, "
             "video, code, summaries, or answers."
         )
-        render_question_title(
+        q5 = render_assessment_question(
+            "q5",
             5,
             "Is the solution using Generative AI systems, like Chatbots, agents or copilots?",
             q5_help,
-        )
-        q5 = st.radio(
-            "Q5",
-            OPTIONS,
-            index=None,
-            key="q5",
-            label_visibility="collapsed",
         )
 
         if q5 == "Yes":
@@ -282,17 +286,11 @@ else:
             q6_help = (
                 "Examples may include internally approved enterprise chatbot/copilot platforms that were pre-assessed."
             )
-            render_question_title(
+            q6 = render_assessment_question(
+                "q6",
                 6,
                 "If yes, is it created using an approved platform that already underwent an AI Ethics Assessment?",
                 q6_help,
-            )
-            q6 = st.radio(
-                "Q6",
-                OPTIONS,
-                index=None,
-                key="q6",
-                label_visibility="collapsed",
             )
 
             if q6 == "Yes":
@@ -303,55 +301,38 @@ else:
                     "Examples: racial/ethnic origin, political opinions, religious beliefs, union membership, genetic data, "
                     "biometric data, health data, sex life, sexual orientation."
                 )
-                render_question_title(
+                q7 = render_assessment_question(
+                    "q7",
                     7,
                     "For generative AI, is it intended to process special categories of personal data?",
                     q7_help,
-                )
-                q7 = st.radio(
-                    "Q7",
-                    OPTIONS,
-                    index=None,
-                    key="q7",
-                    label_visibility="collapsed",
                 )
 
                 q8_help = (
                     "Examples: hiring prioritization, filtering applications, candidate evaluation, promotion/termination "
                     "recommendations, monitoring performance/conduct/productivity."
                 )
-                render_question_title(
+                q8 = render_assessment_question(
+                    "q8",
                     8,
                     "Is it intended for employee management or recruitment activities?",
                     q8_help,
-                )
-                q8 = st.radio(
-                    "Q8",
-                    OPTIONS,
-                    index=None,
-                    key="q8",
-                    label_visibility="collapsed",
                 )
 
                 q9_help = (
                     "Examples: unsafe actions, material wellbeing impact, distress/reputational harm, financial loss, "
                     "inappropriate intervention, or influencing opportunities/treatment/access."
                 )
-                render_question_title(
+                q9 = render_assessment_question(
+                    "q9",
                     9,
                     "Can the outputs reasonably cause physical, psychological, or financial harm?",
                     q9_help,
                 )
-                q9 = st.radio(
-                    "Q9",
-                    OPTIONS,
-                    index=None,
-                    key="q9",
-                    label_visibility="collapsed",
-                )
 
     clear_hidden_answers(visible_questions)
     submitted = st.button("Evaluate", type="primary", use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if submitted:
         answers = {question_key: st.session_state.get(question_key) for question_key in required_questions}
