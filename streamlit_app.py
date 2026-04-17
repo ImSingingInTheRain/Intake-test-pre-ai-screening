@@ -59,6 +59,33 @@ st.markdown(
     .sn-qhint {
         margin-left: 0.3rem;
     }
+    .qtitle-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    .info-btn-wrap {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+    div[data-testid="stPopover"] button {
+        min-height: 2rem;
+        height: 2rem;
+        min-width: 2rem;
+        width: 2rem;
+        border-radius: 999px;
+        border: 1px solid #98a2b3;
+        background: #e6ebf3;
+        padding: 0;
+        font-size: 1rem;
+        line-height: 1;
+    }
+    div[data-testid="stPopover"] button svg {
+        display: none;
+    }
     .stSelectbox > div > div {
         background: #c6ccd8;
     }
@@ -169,12 +196,14 @@ def render_assessment_question(question_key: str, question_number: int, title: s
     st.markdown("<div class='sn-row'>", unsafe_allow_html=True)
     question_col, answer_col = st.columns([0.62, 0.38], vertical_alignment="center")
     with question_col:
-        title_col, info_col = st.columns([0.95, 0.05], vertical_alignment="center")
+        title_col, info_col = st.columns([0.92, 0.08], vertical_alignment="center")
         with title_col:
-            st.markdown(f"<p class='sn-qtitle'>Q{question_number}. {title}</p>", unsafe_allow_html=True)
+            st.markdown(f"<div class='qtitle-wrap'><p class='sn-qtitle'>Q{question_number}. {title}</p></div>", unsafe_allow_html=True)
         with info_col:
-            with st.popover("ⓘ", help=f"More information about question {question_number}"):
+            st.markdown("<div class='info-btn-wrap'>", unsafe_allow_html=True)
+            with st.popover("💡", help=f"More information about question {question_number}"):
                 st.write(tooltip)
+            st.markdown("</div>", unsafe_allow_html=True)
     with answer_col:
         selected = st.selectbox(
             f"Q{question_number}",
@@ -204,17 +233,7 @@ else:
     st.markdown(
         """
         <div class='sn-tabs'>
-            <div class='sn-tab active'>Business process impact</div>
-            <div class='sn-tab'>Business process usages</div>
-            <div class='sn-tab'>Business data impact</div>
-            <div class='sn-tab'>Technical assessment</div>
-            <div class='sn-tab'>IT Security assessment</div>
-            <div class='sn-tab'>Security Threat Scenario</div>
-            <div class='sn-tab'>Activity Journal</div>
-        </div>
-        <div class='sn-surface'>
-            <h3 style='margin-top:0; margin-bottom:0.4rem;'>AI Ethics Assessment Pre-Screening</h3>
-            <p class='subtle' style='margin-top:0;'>Questions appear only when needed based on earlier answers.</p>
+            <div class='sn-tab active'>AI Ethics Assessment Pre-screening</div>
         </div>
         """,
         unsafe_allow_html=True,
