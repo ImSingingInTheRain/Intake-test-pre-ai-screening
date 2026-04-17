@@ -18,6 +18,7 @@ st.markdown(
     .sn-tabs {
         display: flex;
         flex-wrap: wrap;
+        margin-top: 50px;
         border-bottom: 1px solid #98a2b3;
         margin-bottom: 0;
     }
