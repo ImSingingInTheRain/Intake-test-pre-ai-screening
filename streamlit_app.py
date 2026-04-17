@@ -140,7 +140,7 @@ st.markdown(
 )
 
 OPTIONS = ["Yes", "No", "Unsure"]
-QUESTION_KEYS = [f"q{i}" for i in range(1, 10)]
+QUESTION_KEYS = [f"q{i}" for i in range(1, 11)]
 
 
 def evaluate(answers: dict[str, str]) -> str:
@@ -157,6 +157,7 @@ def evaluate(answers: dict[str, str]) -> str:
     q7 = answers.get("q7")
     q8 = answers.get("q8")
     q9 = answers.get("q9")
+    q10 = answers.get("q10")
 
     # Path 1 — research-only
     if q3 == "Yes":
@@ -177,12 +178,12 @@ def evaluate(answers: dict[str, str]) -> str:
     if q6 == "No":
         return "outcome_b"
 
-    if q7 == "Yes" or q8 == "Yes" or q9 == "Yes":
+    if q7 == "Yes" or q8 == "Yes" or q9 == "Yes" or q10 == "Yes":
         return "outcome_b"
 
     # Path 3 — approved low-risk generative AI
     q7_is_low_risk = q7 in (None, "No")
-    if q6 == "Yes" and q7_is_low_risk and q8 == "No" and q9 == "No":
+    if q6 == "Yes" and q7_is_low_risk and q8 == "No" and q9 == "No" and q10 == "No":
         return "outcome_a"
 
     return "outcome_b"
@@ -284,7 +285,7 @@ q3 = render_assessment_question(
     q3_help,
 )
 
-q4 = q5 = q6 = q7 = q8 = q9 = None
+q4 = q5 = q6 = q7 = q8 = q9 = q10 = None
 if q3 != "Yes":
     visible_questions.update({"q4", "q5"})
     required_questions.update({"q4", "q5"})
@@ -324,8 +325,8 @@ if q3 != "Yes":
         )
 
         if q6 == "Yes":
-            visible_questions.update({"q8", "q9"})
-            required_questions.update({"q8", "q9"})
+            visible_questions.update({"q8", "q9", "q10"})
+            required_questions.update({"q8", "q9", "q10"})
 
             q7_help = (
                 "Examples: racial/ethnic origin, political opinions, religious beliefs, union membership, genetic data, "
@@ -353,14 +354,25 @@ if q3 != "Yes":
             )
 
             q9_help = (
-                "Examples: unsafe actions, material wellbeing impact, distress/reputational harm, financial loss, "
-                "inappropriate intervention, or influencing opportunities/treatment/access."
+                "Examples: hiring prioritization, filtering applications, candidate evaluation, promotion/termination "
+                "recommendations, monitoring performance/conduct/productivity."
             )
             q9 = render_assessment_question(
                 "q9",
                 9,
-                "Can the outputs cause physical, psychological, or financial harm?",
+                "Is the Generative AI system used for employee management or recruitment activities?",
                 q9_help,
+            )
+
+            q10_help = (
+                "Examples: unsafe actions, material wellbeing impact, distress/reputational harm, financial loss, "
+                "inappropriate intervention, or influencing opportunities/treatment/access."
+            )
+            q10 = render_assessment_question(
+                "q10",
+                10,
+                "Can the outputs cause physical, psychological, or financial harm?",
+                q10_help,
             )
 
 clear_hidden_answers(visible_questions)
