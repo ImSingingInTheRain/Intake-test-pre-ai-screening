@@ -169,10 +169,12 @@ def render_assessment_question(question_key: str, question_number: int, title: s
     st.markdown("<div class='sn-row'>", unsafe_allow_html=True)
     question_col, answer_col = st.columns([0.62, 0.38], vertical_alignment="center")
     with question_col:
-        st.markdown(f"<p class='sn-qtitle'>Q{question_number}. {title}<span class='sn-qhint'>ⓘ</span></p>", unsafe_allow_html=True)
-        with st.popover("?", use_container_width=True):
-            st.caption("More information")
-            st.write(tooltip)
+        title_col, info_col = st.columns([0.95, 0.05], vertical_alignment="center")
+        with title_col:
+            st.markdown(f"<p class='sn-qtitle'>Q{question_number}. {title}</p>", unsafe_allow_html=True)
+        with info_col:
+            with st.popover("ⓘ", help=f"More information about question {question_number}"):
+                st.write(tooltip)
     with answer_col:
         selected = st.selectbox(
             f"Q{question_number}",
