@@ -155,7 +155,6 @@ def evaluate(answers: dict[str, str]) -> str:
     q5 = answers.get("q5")
     q6 = answers.get("q6")
     q7 = answers.get("q7")
-    q8 = answers.get("q8")
     q9 = answers.get("q9")
     q10 = answers.get("q10")
 
@@ -178,12 +177,12 @@ def evaluate(answers: dict[str, str]) -> str:
     if q6 == "No":
         return "outcome_b"
 
-    if q7 == "Yes" or q8 == "Yes" or q9 == "Yes" or q10 == "Yes":
+    if q7 == "Yes" or q9 == "Yes" or q10 == "Yes":
         return "outcome_b"
 
     # Path 3 — approved low-risk generative AI
     q7_is_low_risk = q7 in (None, "No")
-    if q6 == "Yes" and q7_is_low_risk and q8 == "No" and q9 == "No" and q10 == "No":
+    if q6 == "Yes" and q7_is_low_risk and q9 == "No" and q10 == "No":
         return "outcome_a"
 
     return "outcome_b"
@@ -285,7 +284,7 @@ q3 = render_assessment_question(
     q3_help,
 )
 
-q4 = q5 = q6 = q7 = q8 = q9 = q10 = None
+q4 = q5 = q6 = q7 = q9 = q10 = None
 if q3 != "Yes":
     visible_questions.update({"q4", "q5"})
     required_questions.update({"q4", "q5"})
@@ -325,8 +324,8 @@ if q3 != "Yes":
         )
 
         if q6 == "Yes":
-            visible_questions.update({"q8", "q9", "q10"})
-            required_questions.update({"q8", "q9", "q10"})
+            visible_questions.update({"q9", "q10"})
+            required_questions.update({"q9", "q10"})
 
             q7_help = (
                 "Examples: racial/ethnic origin, political opinions, religious beliefs, union membership, genetic data, "
@@ -342,24 +341,13 @@ if q3 != "Yes":
                     q7_help,
                 )
 
-            q8_help = (
-                "Examples: hiring prioritization, filtering applications, candidate evaluation, promotion/termination "
-                "recommendations, monitoring performance/conduct/productivity."
-            )
-            q8 = render_assessment_question(
-                "q8",
-                8,
-                "is it intended to process special categories of personal data?",
-                q8_help,
-            )
-
             q9_help = (
                 "Examples: hiring prioritization, filtering applications, candidate evaluation, promotion/termination "
                 "recommendations, monitoring performance/conduct/productivity."
             )
             q9 = render_assessment_question(
                 "q9",
-                9,
+                8,
                 "Is the Generative AI system used for employee management or recruitment activities?",
                 q9_help,
             )
@@ -370,7 +358,7 @@ if q3 != "Yes":
             )
             q10 = render_assessment_question(
                 "q10",
-                10,
+                9,
                 "Can the outputs cause physical, psychological, or financial harm?",
                 q10_help,
             )
